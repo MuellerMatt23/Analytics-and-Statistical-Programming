@@ -1,0 +1,164 @@
+---
+title: "Week 5 TXT 1 Ch3 Exercise"
+output: html_notebook
+---
+
+#################################
+# Matt Mueller
+# Exercise 3 - The purpose of this exercise is to learn how to properly visualize data using ggplot
+# HDS 5310 - 01
+# 2/19/2025
+#################################
+
+
+```{r}
+# load in the libraries
+
+library(tidyverse)
+library(nhanesA)
+
+```
+
+```{r}
+# load the dataset
+
+# load the AUQ_G file
+nhanes.AUQ_G <- nhanes("AUQ_G", includelabels = TRUE)
+
+# load the demographics
+nhanes_demo_2012 <- nhanes("DEMO_G", includelabels = TRUE)
+
+# merge the datasets together
+nhanes.2012 <- merge(nhanes.AUQ_G, nhanes_demo_2012, by="SEQN")
+
+# this code will load the AUQ_G and demographics datasets before merging them into one
+```
+
+
+
+```{r}
+nhanes.2012.clean <- nhanes.2012 %>%
+  mutate(INDHHIN2 = as.character(INDHHIN2)) %>%
+  mutate(INDHHIN2 = na_if(x = INDHHIN2, '77')) %>%  
+  mutate(INDHHIN2 = na_if(x = INDHHIN2, '99')) %>%  
+  mutate(INDHHIN2 = recode_factor(.x = INDHHIN2,  
+                                  `1` = "$0 to $4,999",  
+                                  `2` = "$5,000 to $9,999",  
+                                  `3` = "$10,000 to $14,999",  
+                                  `4` = "$15,000 to $19,999",  
+                                  `5` = "$20,000 to $24,999",  
+                                  `6` = "$25,000 to $34,999",  
+                                  `7` = "$35,000 to $44,999",  
+                                  `8` = "$45,000 to $54,999",  
+                                  `9` = "$55,000 to $64,999",
+                                  `10` = "$65,000 to $74,999",  
+                                  `12` = "$20,000 and Over",  
+                                  `13` = "Under $20,000",  
+                                  `14` = "$75,000 to $99,999",  
+                                  `15` = "$100,000 and Over")) %>% 
+  mutate(DMDMARTL = as.character(DMDMARTL)) %>%
+  mutate(DMDMARTL = na_if(x = DMDMARTL, '77')) %>%    
+  mutate(DMDMARTL = na_if(x = DMDMARTL, '99')) %>%
+  mutate(DMDMARTL = recode_factor(.x = DMDMARTL,  
+                                  `1` = "Married",  
+                                  `2` = "Widowed",  
+                                  `3` = "Divorced",  
+                                  `4` = "Separated",  
+                                  `5` = "Never married",  
+                                  `6` = "Living with partner")) %>%   
+  mutate(RIDRETH3 = recode_factor(.x = RIDRETH3, `1` = "Mexican American",  
+                                  `2` = "Other Hispanic",   
+                                  `3` = "Non-Hispanic White",  
+                                  `4` = "Non-Hispanic Black",  
+                                  `6` = "Non-Hispanic Asian",  
+                                  `7` = "Other Race - Including Multi-Racial")) %>%
+  mutate(AUQ300 = as.character(AUQ300)) %>%
+  mutate(AUQ300 = na_if(x = AUQ300, y = "7")) %>%   
+  mutate(AUQ300 = recode_factor(.x = AUQ300,  
+                                `1` = 'Yes',  
+                                `2` = 'No')) %>%  
+  rename(gun.use = AUQ300) %>%    
+  rename(race.eth = RIDRETH3) %>%    
+  rename(income = INDHHIN2) %>%
+  rename(marital = DMDMARTL) %>%    
+  select(gun.use, race.eth, income, marital)  
+
+# check recoding summary
+(object = nhanes.2012.clean)  
+
+# This code restructures the dataset and cleans it up. A few of the mutate lines had to be changed 
+# and I had to add lines converting the data to character data to solve the issue.
+```
+
+
+```{r}
+# create a bar graph showing income category
+
+ggplot(nhanes.2012.clean, aes(x = factor(income, levels = c(
+                              "$100,000 and Over",
+                              "$75,000 to $99,999",
+                              "$65,000 to $74,999",
+                              "$55,000 to $64,999",
+                              "$45,000 to $54,999",
+                              "$35,000 to $44,999",
+                              "$25,000 to $34,999",
+                              "$20,000 to $24,999",
+                              "$15,000 to $19,999",
+                              "$10,000 to $14,999",
+                              "$5,000 to $9,999",
+                              "$0 to $4,999",
+                              "Under $20,000",
+                              "$20,000 and Over")))) +
+  geom_bar(na.rm = TRUE) +
+  coord_flip() +
+  xlab("Income Category") +
+  ylab("Number of Observations")
+```
+### This plot shows that the average salary is most likely around $45,000. Due to the unexpectedly high number of reported salaries above $100,000, there is most likely either a response bias where people are more likely to answer this question if they have a higher salary, or people were not reporting their salaries honestly.
+
+```{r}
+ggplot(nhanes.2012.clean, aes(x=marital)) +
+  geom_bar() +
+  coord_flip() +
+  xlab("Marital Status") +
+  ylab("Number of observations")
+```
+### This plot shows that the most frequent category is the Married category with Never married coming in second. The third most frequent marital status is the Divorced category.
+
+```{r}
+ggplot(nhanes.2012.clean, aes(x=race.eth)) +
+  geom_bar() +
+  coord_flip() +
+  xlab("Race/Ethnicity") +
+  ylab("Number of observations")
+```
+### This plot shows that Non-Hispanic White makes up the majority of the demographics with Non-Hispanic Black in a close second. The least common Race/Ethnicity category is "Other Race Including Multiracial. For this reason, multi-racial individuals and non-listed ethnicities will be underrepresented in the dataset.
+
+```{r}
+
+ggplot(nhanes.2012.clean, aes(x = income, fill=gun.use)) +
+  geom_bar(position = "dodge") +
+  coord_flip() +
+  xlab("Income Category") +
+  ylab("Number of Observations")
+```
+### Adding the fill layer allows us to see the responses colored by the person's answer to the gun use question. The majority of people answered "No" to gun use in each income category. The income category with the highest occurrence of gun use is the $100,000 and over category with approximately 300 observations.
+
+
+```{r}
+ggplot(nhanes.2012.clean, aes(x=race.eth, fill=gun.use)) +
+  geom_bar(position="dodge") +
+  coord_flip() +
+  xlab("Race/Ethnicity") +
+  ylab("Number of observations")
+```
+### The only race where "Yes" was answered more frequently than "No" for gun use is the Non-Hispanic White" category. For the other Races/Ethnicities, the ratio of yes to no answers for gun use is similar at around 1/4 to 1/3 of answers being no.
+
+```{r}
+ggplot(nhanes.2012.clean, aes(x=marital, fill=gun.use)) +
+  geom_bar(position="dodge") +
+  coord_flip() +
+  xlab("Marital Status") +
+  ylab("Number of observations")
+```
+### From this graph, it appears that gun use stays relatively the same in all marital status categories. For each category, there are more observations of people who did not use guns than people who did use guns.

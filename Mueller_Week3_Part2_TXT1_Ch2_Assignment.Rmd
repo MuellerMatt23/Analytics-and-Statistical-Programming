@@ -1,0 +1,188 @@
+---
+title: "TXT 1 Chapter 2 Exercise"
+output: html_notebook
+---
+
+############################################################################################ 
+
+# Week 3 Part 02 TXT 1 Ch2 Assignment
+
+# The purpose of this project is to use BRFSS data to create a table of appropriate descriptive statistics and describe the characteristics of transgender participants in the 2014 BRFSS
+
+# Matt Mueller
+
+# 2/7/2024
+
+Questions:
+
+1)  Open the transgender_hc_ch2.csv 2014 BRFSS data file. – 0.5 points
+
+2)  Select the data including only transgender participants. (Hint: filter(TRNSGNDR \< 4)) – 1 point
+
+3)  Select the data including only the variables of interest (Hint: select(TRNSGNDR, PHYSHLTH, X_INCOMG, X_EDUCAG, X_AGEG5YR, X_AGE80, X_RACE)). –1 point
+
+4)  Check the data types of all the variables and fix any that seem incorrect. (Hint: PHYSHLTH and X_AGE80 are numeric; the rest are factors) – 1 point
+
+5)  Based on the BRFSS codebook, code missing values and add category labels appropriately – 1 point.
+
+6)  Choose and conduct appropriate descriptive statistics for all variables in the small data set (Achievements 2 and 3). – 0.5 points
+
+7)  Develop a well-formatted results table, including all variables in the small data set (Achievement 4). – 0.5 points
+
+8)  Add a prolog and comments to your code. – 0.5 points
+
+9)  Summarize the characteristics of transgender survey participants in the 2014 BRFSS. – 1 point
+
+############################################################################################# 
+
+```{r}
+# load in the libraries
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(tableone)
+```
+
+```{r}
+# load in the data
+df <- read.csv("C:/Users/muell/Downloads/Week3_Part02_TXT1_Ch2_Assignment/Week3_Part02_TXT1_Ch2_Assignment/transgender_hc_ch2.csv")
+```
+
+```{r}
+# filter the df for rows with TRNSGNDR value less than 4
+df_filtered <- filter(df, TRNSGNDR < 4)
+
+rm(df)
+```
+
+```{r}
+# select these columns from the df
+df_selected <- select(df_filtered, TRNSGNDR, PHYSHLTH, 
+X_INCOMG, X_EDUCAG, X_AGEG5YR, X_AGE80, X_RACE)
+
+rm(df_filtered)
+```
+
+```{r}
+# check the datatype of the variables
+class(df_selected$TRNSGNDR)
+class(df_selected$X_AGE5YR)
+class(df_selected$X_RACE)
+class(df_selected$X_INCOMG)
+class(df_selected$X_EDUCAG)
+class(df_selected$X_AGE80)
+class(df_selected$PHYSHEALTH)
+```
+
+```{r}
+# assign the correct datatype to each variable
+df_selected$TRNSGNDR <- as.factor(df_selected$TRNSGNDR)
+df_selected$X_AGE5YR <- as.factor(df_selected$X_AGEG5YR)
+df_selected$X_RACE <- as.factor(df_selected$X_RACE)
+df_selected$X_INCOMG <- as.factor(df_selected$X_INCOMG)
+df_selected$X_EDUCAG <- as.factor(df_selected$X_EDUCAG)
+df_selected$X_AGE80 <- as.numeric(df_selected$X_AGE80)
+df_selected$PHYSHLTH <- as.numeric(df_selected$PHYSHLTH)
+```
+
+```{r}
+# add proper category labels for TRNSGNDR column
+df_selected$TRNSGNDR <- factor(df_selected$TRNSGNDR,
+                               levels = c(1, 2, 3),
+                               labels = c("Transgender male-to-female",
+                                          "Transgender female-to-male",
+                                          "Transgender gender nonconforming")
+                               )
+
+# Change PHYSHLTH 77 and 99 to NA
+df_selected <- df_selected %>%
+  mutate(PHYSHLTH = na_if(PHYSHLTH, 77)) %>%
+  mutate(PHYSHLTH = na_if(PHYSHLTH, 99))
+
+# recode PHYSHLTH 88 to 0
+df_selected$PHYSHLTH[df_selected$PHYSHLTH == 88] <- 0
+
+# add category labels to X_INCOMG
+df_selected$X_INCOMG <- factor(df_selected$X_INCOMG,
+                               levels = c(1, 2, 3, 4, 5, 9),
+                               labels = c("Less than $15,000",
+                                          "$15,000 to less than $25,000",
+                                          "$25,000 to less than $35,000",
+                                          "$35,000 to less than $50,000",
+                                          "$50,000 or more",
+                                          "NA_character_")
+                               )
+
+# add category labels to X_EDUCAG
+df_selected$X_EDUCAG <- factor(df_selected$X_EDUCAG,
+                               levels = c(1, 2, 3, 4, 9),
+                               labels = c("Did not graduate High School",
+                                          "Graduated High Schoool",
+                                          "Attended College or Technical School",
+                                          "Graduated College or Technical School",
+                                          "NA_character_")
+                               )
+
+# add category labels to X_AGEG5YR
+df_selected$X_AGE5YR <- factor(df_selected$X_AGEG5YR,
+                               levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
+                               labels = c("Age 18 to 24",
+                                          "Age 25 to 29",
+                                          "Age 30 to 34",
+                                          "Age 35 to 39",
+                                          "Age 40 to 44",
+                                          "Age 45 to 49",
+                                          "Age 50 to 54",
+                                          "Age 55 to 59",
+                                          "Age 60 to 64",
+                                          "Age 65 to 69",
+                                          "Age 70 to 74",
+                                          "Age 75 to 79",
+                                          "Age 80 or older",
+                                          "NA_character_")
+                               )
+
+# add category labels to X_RACE
+df_selected$X_RACE <- factor(df_selected$X_RACE,
+                               levels = c(1, 2, 3, 4, 5, 6, 7, 8),
+                               labels = c("Black only, non-Hispanic",
+                                          "American Indian or Alaskan Native only, Non-Hispanic",
+                                          "Asian only, non-Hispanic",
+                                          "Native Hawaiian or other Pacific Islander only, Non-Hispanic",
+                                          "Other race only, non-Hispanic",
+                                          "Multiracial, non-Hispanic",
+                                          "Hispanic",
+                                          "NA_character_")
+                               )
+
+```
+
+```{r}
+# check the df for labels
+str(df_selected)
+```
+
+```{r}
+# get the descriptive statistics for physhlth
+df_selected %>%
+  drop_na(PHYSHLTH) %>%
+  summarize(mean_days = mean(PHYSHLTH, na.rm=TRUE),
+            med_days = median(PHYSHLTH, na.rm=TRUE),
+            IQR_days = IQR(PHYSHLTH),
+            sd_days = sd(PHYSHLTH),
+            mode_days = names(x=sort(table(PHYSHLTH),decreasing=TRUE))[1])
+```
+
+```{r}
+# use tableone to create a table
+contVars <- c("TRNSGNDR", "X_INCOMG", "X_EDUCAG", "X_AGE5YR", "X_RACE")
+catVars <- c("PHYSHLTH", "X_AGE80")
+
+table1 <- CreateTableOne(vars = c(catVars, contVars), data=df_selected, factorVars = catVars)
+
+print(table1, nonnormal = contVars)
+```
+
+```{r}
+# Over half (58.9%) of the participants show good physical health over the last 30 days reporting 0 days of feeling physically unhealthy in the last 30 days. The age of the participants ranged from 18 to 80 with the most frequent age being between 60-64. The majority of the participants (72.1%) are in the Black only, non-Hispanic category with the American Indian or Alaskan Native only category coming in second at 10.5%. The most common income group among the participants is the $50,000 or more category, but 60.2% of the transgender participants earn under $50,000 per year. The transition status category indicates the most transitions are male-to-female at 52.5% and female-to-male transitions at 30.7%. Gender nonconforming transitions accounted for 16.8% of the participants, suggesting this transition is less common among the participants. 
+```

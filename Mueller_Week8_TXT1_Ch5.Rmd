@@ -1,0 +1,285 @@
+---
+title: "Week8_TXT1_Ch5_Assignment"
+output: html_notebook
+---
+
+# Matt Mueller
+
+# HDS-5030-01
+
+# The purpose of this assignment is to reinforce what we have learned about loading in data, cleaning the data, performing the appropriate descriptive statistics, checking assumptions, using non-parametric tests to gain insights into the data, and interpreting the results of our analysis.
+
+# 3/17/2025
+
+## Question 1
+
+```{r message=FALSE, warning=FALSE}
+# load in the necessary libraries
+library(haven)
+library(descr)
+library(lsr)
+library(tidyverse)
+```
+
+```{r warning=FALSE}
+# read in the data
+
+vote <- read_sav("pew_apr_19-23_2017_weekly_ch5.sav")
+
+```
+
+```{r warning=FALSE}
+# select only the variables we want to use
+vote <- vote %>%
+  select(pew1a, pew1b, race, sex, mstatus, ownhome, employ, polparty)
+```
+
+```{r warning=FALSE}
+vote <- zap_labels(vote)
+```
+
+```{r warning=FALSE}
+vote <- vote %>%
+  mutate(easy.vote = recode_factor(pew1a, 
+                `1` = 'Register to vote',
+                `2` = 'Make easy to vote',
+                `5` = NA_character_,
+                `9` = NA_character_
+  ))
+```
+
+```{r warning=FALSE}
+vote <- vote %>%
+  mutate(require.vote = recode_factor(pew1b,
+                                      `1` = 'Require to vote',
+                                      `2` = 'Choose to vote',
+                                      `5` = NA_character_,
+                                      `9` = NA_character_
+                                      ))
+```
+
+```{r warning=FALSE}
+vote <- vote %>%
+  mutate(race = recode_factor(race,
+                              `1` = 'White non-Hispanic', 
+                              `2` = 'Black non-Hispanic', 
+                              `3` = 'Hispanic', 
+                              `4` = 'Hispanic', 
+                              `5` = 'Hispanic', 
+                              `6` = 'Other', 
+                              `7` = 'Other', 
+                              `8` = 'Other', 
+                              `9` = 'Other', 
+                              `10` = 'Other', 
+                              `99` = NA_character_ 
+                              ))
+```
+
+```{r warning=FALSE}
+vote <- vote %>%
+  mutate(sex = recode_factor(sex,
+                             `1` = 'Male',
+                             `2` = 'Female'
+                             ))
+```
+
+```{r warning=FALSE}
+vote <- vote %>%
+  mutate(ownhome = recode_factor(ownhome,
+                                 `1` = 'Owned',
+                                 `2` = 'Rented',
+                                 `8` = NA_character_,
+                                 `9` = NA_character_
+                                 ))
+```
+
+```{r warning=FALSE}
+vote.cleaned <- vote %>%
+  select(-pew1a, -pew1b)
+
+summary(vote.cleaned)
+```
+
+## Question 2
+
+```{r warning=FALSE}
+vote.cleaned <- vote.cleaned %>%
+  mutate(mstatus = recode_factor(mstatus,
+                                 `1` = 'Single, that is never married', 
+                                 `2` = 'Single, living with a partner', 
+                                 `3` = 'Married',
+                                 `4` = 'Separated', 
+                                 `5` = 'Widowed', 
+                                 `6` = 'Divorced', 
+                                 `9` = NA_character_
+                                 ))
+
+vote.cleaned <- vote.cleaned %>%
+  mutate(employ = recode_factor(employ,
+                                `1` = 'Employed full-time', 
+                                `2` = 'Employed part-time', 
+                                `3` = 'Not employed', 
+                                `4` = 'Not employed', 
+                                `5` = 'Not employed', 
+                                `6` = 'Not employed', 
+                                `7` = 'Not employed',  
+                                `8` = 'Not employed', 
+                                `9` = NA_character_
+                                ))
+
+vote.cleaned <- vote.cleaned %>%
+  mutate(polparty = recode_factor(polparty,
+                                `1` = 'A Republican', 
+                                `2` = 'A Democrat', 
+                                `3` = 'An Independent', 
+                                `0` = NA_character_, 
+                                `8` = NA_character_, 
+                                `9` = NA_character_ 
+                                ))
+
+summary(vote.cleaned)
+```
+
+## Question 3
+
+```{r warning=FALSE}
+sex_table <- table(vote.cleaned$sex, vote.cleaned$easy.vote)
+
+sex_prop_table <- prop.table(sex_table)
+
+print(sex_prop_table)
+```
+
+```{r warning=FALSE}
+mstatus_table <- table(vote.cleaned$mstatus, vote.cleaned$easy.vote)
+
+mstatus_prop_table <- prop.table(mstatus_table)
+
+print(mstatus_prop_table)
+```
+
+```{r warning=FALSE}
+employ_table <- table(vote.cleaned$employ, vote.cleaned$easy.vote)
+
+employ_prop_table <- prop.table(employ_table)
+
+print(employ_prop_table)
+```
+
+```{r warning=FALSE}
+polparty_table <- table(vote.cleaned$polparty, vote.cleaned$easy.vote)
+
+polparty_prop_table <- prop.table(polparty_table)
+
+print(polparty_prop_table)
+```
+
+## Question 4
+
+### H0: There is no relationship between ease.vote and the variable in question
+
+### HA: There is a relationship between ease.vote and the variable in question
+
+```{r warning=FALSE}
+# Ease.vote and sex
+
+sex_chi_sq <- chisq.test(sex_table)
+
+print(sex_chi_sq)
+```
+
+### The p-value is above the threshold, so we will accept the null hypothesis. There is no relationship between sex and ease.vote
+
+```{r warning=FALSE}
+# Ease.vote and employ
+
+employ_chi_sq <- chisq.test(employ_table)
+
+print(employ_chi_sq)
+```
+
+### The p-value is above the threshold, so we will accept the null hypothesis. There is no relationship between employment and ease.vote
+
+```{r warning=FALSE}
+# Ease.vote and mstatus
+
+mstatus_chi_sq <- chisq.test(mstatus_table)
+
+print(mstatus_chi_sq)
+```
+
+### With a test statistic of 14.381 and 5 degrees of freedom, there is a p-value of 0.01336. Therefore, we reject the null hypothesis and conclude that there is a relationship between mstatus and ease.vote
+
+```{r warning=FALSE}
+# Ease.vote and polparty
+
+polparty_chi_sq <- chisq.test(polparty_table)
+
+print(polparty_chi_sq)
+```
+
+### The p-value is well below the threshold, so we can reject the null hypothesis. We can conclude that there is a relationship between political party and ease.vote
+
+## Question 5:
+
+```{r warning=FALSE}
+print(mstatus_chi_sq$stdres)
+```
+
+### The single and never married and the divorced groups had lower than expected individuals in the register to vote category, and the married and widowed groups were higher than expected. In the make easy to vote category, the single and never married group and divorced group were higher than expected, but the married and widowed groups were lower than expected.
+
+```{r warning=FALSE}
+print(polparty_chi_sq$stdres)
+```
+
+### For both the republican and independent groups, there were more individuals in the register to vote group than expected and less in the make easy to vote group than expected. For the democrat groups, it was the opposite with less people in the register to vote category than expected and more in the make easy to vote category.
+
+## Question 5
+
+```{r warning=FALSE}
+mstatus_crosstable <- CrossTable(vote.cleaned$mstatus, vote.cleaned$easy.vote)
+
+print(mstatus_crosstable)
+```
+
+### Based on these results, it appears that the single, that is never married group contributes the most to the chi square statistic within the mstatus category. The married and widowed groups also contribute more than the others, but to a lesser extent than the single and never married group.
+
+```{r warning=FALSE}
+polparty_crosstable <- CrossTable(vote.cleaned$polparty, vote.cleaned$easy.vote)
+
+print(polparty_crosstable)
+```
+
+### From these results, we can see that the Republican and Democrat groups contribute significantly to the chi square statistic, while the Independent group does not make a large impact. Therefore, the deviation from the expected values is likely cause mostly by the Republican and Democrat groups.
+
+## Question 6
+
+```{r warning=FALSE}
+mstatus_cramersV <- cramersV(mstatus_table)
+
+print(mstatus_cramersV)
+```
+
+### This value indicates that although the chi square statistic was significant, there is a relatively weak relationship between the variables.
+
+```{r warning=FALSE}
+polparty_cramersV <- cramersV(polparty_table)
+
+print(polparty_cramersV)
+```
+
+### The value of 0.3624368 indicates a moderate relationship between the two variables.
+
+## Question 7
+
+```{r warning=FALSE}
+employ_exp <- chisq.test(employ_table)$expected
+
+print(employ_exp)
+```
+
+```{r warning=FALSE}
+polparty_exp <- chisq.test(polparty_table)$expected
+
+print(polparty_exp)
+```

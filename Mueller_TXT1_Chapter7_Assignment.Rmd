@@ -1,0 +1,210 @@
+---
+title: "TXT1_Chapter7_Assignment"
+output: html_notebook
+---
+
+###############################################################################################
+# TXT1 Chapter 7 Assignment
+# The purpose of this assignment is to use descriptive statistics, data visualizations, and compute the appropriate test statistics for each comparison being made. Here, we are looking at the effects of marital status and sex on tech use to see if there is a statistically significant difference among the groups and if the interaction between sex and marital status has a combined effect on tech use. 
+# Matt Mueller
+# 04/03/2025
+# Data: gss2018.rda in the assignment file
+###############################################################################################
+
+```{r}
+# load the necessary libraries
+library(tidyverse)
+library(car)
+```
+
+### Question 1
+
+```{r}
+load("gss2018.rda")
+
+gss.2018 <- GSS
+
+rm(GSS)
+```
+
+### Question 2
+
+```{r}
+gss.2018.cleaned <- gss.2018 %>%
+  select(SEX, USETECH, MARITAL) %>%
+  mutate(
+    USETECH = na_if(USETECH, -1),
+    USETECH = na_if(USETECH, 999),
+    USETECH = na_if(USETECH, 998),
+    MARITAL = na_if(MARITAL, 9),
+    SEX = factor(SEX, levels=c(1,2), labels=c("male", "female")),
+    MARITAL = factor(MARITAL, levels=c(1,2,3,4,5), labels=c("Married","Widowed","Divorced","Separated","Never Married"))
+  )
+```
+
+### Question 3
+
+```{r}
+# descriptive statistics for USETECH 
+
+usetech_stats <- gss.2018.cleaned %>%
+  filter(!is.na(USETECH)) %>%
+  summarise(USETECH_mean = mean(USETECH),
+            USETECH_sd = sd(USETECH))
+
+usetech_stats
+```
+
+```{r}
+# histogram of USETECH
+
+ggplot(gss.2018.cleaned, aes(x=USETECH)) +
+  geom_histogram(bins=20) +
+  labs(
+    title = "Histogram of USETECH",
+    x = "USETECH",
+    y = "Count"
+  )
+```
+
+
+```{r}
+# descriptive statistics of USETECH by SEX
+
+USETECH_by_SEX_stats <- gss.2018.cleaned %>%
+  filter(!is.na(USETECH)) %>%
+  group_by(SEX) %>%
+  summarise(USETECH_by_SEX_mean = mean(USETECH),
+            USETECH_by_SEX_sd = sd(USETECH))
+
+USETECH_by_SEX_stats
+
+```
+
+```{r}
+# descriptive statistics of USETECH by MARITAL
+
+USETECH_by_MARITAL_stats <- gss.2018.cleaned %>%
+  filter(!is.na(USETECH)) %>%
+  group_by(MARITAL) %>%
+  summarise(USETECH_by_MARITAL_mean = mean(USETECH),
+            USETECH_by_MARITAL_sd = sd(USETECH))
+
+USETECH_by_MARITAL_stats
+```
+
+```{r}
+USETECH_by_SEX_MARITAL_stats <- gss.2018.cleaned %>%
+  filter(!is.na(USETECH)) %>%
+  group_by(SEX, MARITAL) %>%
+  summarise(USETECH_by_SEX_MARITAL_mean = mean(USETECH),
+            USETECH_by_SEX_MARITAL_sd = sd(USETECH))
+
+USETECH_by_SEX_MARITAL_stats
+```
+
+```{r}
+ggplot(gss.2018.cleaned, aes(x=MARITAL, y=USETECH, fill=SEX)) +
+  geom_boxplot(na.rm = TRUE) +
+  labs(
+    title = "USETECH by SEX and MARITAL",
+    x = "MARITAL",
+    y = "USETECH"
+  )
+```
+
+### Question 4
+
+#### Based on the interpretation of the above graph, when comparing tech use across groups by marital status, it would be expected that Separated group would show a higher average tech use than the other groups. For the divorced and separated groups, the average tech use between males and females is about the same, but in the married, widowed, and never married groups, females will show a higher average tech use than the males within those groups. To determine whether or not this interpretation is accurate or statistically significant, further tests will be needed.
+
+### Question 5
+
+```{r}
+# perform a one-way anova test for USETECH and MARITAL
+anova_USETECH_MARITAL <- oneway.test(USETECH ~ MARITAL, data=gss.2018.cleaned, var.equal=TRUE)
+
+anova_USETECH_MARITAL
+```
+
+#### Interpretation: The F-statistic is significant with a p-value of 0.004273, so a post hoc test is needed to determine which means are statistically significantly different from each other.
+
+```{r}
+# H0: The means are not statistically significantly different from each other.
+# HA: The means ARE statistically significantly different from each other.
+
+# Perform a Bonferroni pairwise test
+
+USETECH_MARITAL_pairwise_test <- pairwise.t.test(gss.2018.cleaned$USETECH, gss.2018.cleaned$MARITAL, p.adj="bonf")
+
+USETECH_MARITAL_pairwise_test
+```
+
+#### Interpretation: There is no statistically significant difference among the Widowed or Separated groups compared to the Married group. However, the Divorced and Never Married groups do show a significant difference in comparison to the Married group in the USETECH category. All of the other comparisons were not statistically significant.
+
+### Question 6
+
+```{r}
+# check for normality 
+ggplot(gss.2018.cleaned, aes(x=USETECH)) +
+  geom_density() +
+  labs(
+    title = "Density Plot of USETECH",
+    x = "USETECH"
+  )
+```
+
+```{r}
+# check for equal variances using leveneTest
+
+leveneTest_results <- leveneTest(USETECH ~ MARITAL, data=gss.2018.cleaned)
+
+leveneTest_results
+```
+
+#### Interpretation: The data does have equal variance across marital groups, but the data is not normally distributed. Therefore, we need to choose an alternate test.
+
+```{r}
+# perform kruskal wallis test
+
+#H0: There is not a statistically significant difference among the groups
+#HA: There IS a statistically significant different among the groups
+
+kruskal_test_results <- kruskal.test(USETECH ~ MARITAL, data=gss.2018.cleaned)
+
+kruskal_test_results
+```
+
+#### Interpretation: The p-value is significant, so we can reject the null hypothesis and conclude that there is a statistically significant difference among the MARITAL groups in terms of tech use.
+
+### Question 7
+
+```{r}
+# conduct a two-way anova test comparing mean tech use by marital status and sex
+
+# H0: SEX and MARITAL do not significantly effect each others' impact on tech use
+# HA: SEX and MARITAL DO significantly effect each others' impact on tech use
+
+two_way_results <- aov(USETECH ~ SEX * MARITAL, data=gss.2018.cleaned)
+
+summary(two_way_results)
+```
+
+#### Interpretation: Based on these results, USETECH differs statistically significantly between SEX and MARITAL groups individually. However, the SEX:MARITAL comparison shows a non-significant p-value. Therefore, we can conclude that the interaction between sex and marital status does not contribute significantly to the difference in tech use, and we fail to reject the null hypothesis.
+
+```{r}
+# test for normality using shapiro test
+
+shapiro_test_results <- shapiro.test(two_way_results$residuals)
+
+shapiro_test_results
+```
+
+```{r}
+# test for equal variance for groups using leveneTest()
+
+levene_results <- leveneTest(USETECH ~ SEX * MARITAL, data=gss.2018.cleaned)
+
+levene_results
+```
+
+#### Interpretation: The p-value for both tests is significant, so the data does not meet the assumptions of normality or equal variances for a two-way ANOVA test.

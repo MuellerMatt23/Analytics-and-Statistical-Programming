@@ -1,0 +1,136 @@
+---
+title: "TXT1_Chapter9_Assignment"
+output: html_notebook
+---
+
+#############################################################################
+# TXT1 Chapter 9 Assignment
+# The purpose of this assignment is to implement and evaluate linear models using the dist_ssp_amfar_ch9 dataset. We create two linear models, with the second including the metro variable, to determine which variable can be used as a predictor for the distance variable. Through the interpretation of test statistics and comparing the two models, we can determine which variable is a statistically significant predictor. 
+# Matt Mueller
+# 04/17/2025
+# Data: dist_ssp_amfar_ch9.csv in the assignment file
+#############################################################################
+
+```{r}
+#load the libraries
+library(ggplot2)
+library(lmtest)
+```
+
+## Question 1
+
+```{r}
+# load the dataset to variable ssp.data
+
+ssp.data <- read.csv("dist_ssp_amfar_ch9.csv")
+```
+
+## Question 2
+
+```{r}
+# create model using lm() with cube root of outcome variable dist_SSP and opiod_RxRate as the predictor variable
+
+dist.by.rx <- lm(I(dist_SSP^(1/3)) ~ opioid_RxRate, data=ssp.data)
+```
+
+
+## Question 3
+
+```{r}
+# Check the model assumptions
+
+# Step 1: Independent Observations
+str(ssp.data)
+```
+
+```{r}
+# Step 2: Continuous Outcome
+is.numeric(ssp.data$dist_SSP)
+```
+
+```{r}
+# Step 3: Linearity
+ggplot(ssp.data, aes(x = opioid_RxRate, y = I(dist_SSP^(1/3)))) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  theme_bw() +
+  labs(
+    x = "Prescriptions per 100 people",
+    y = "Cube root of dist to SSP"
+  )
+```
+
+```{r}
+# Step 4: Constant variance
+bptest(dist.by.rx)
+```
+
+```{r}
+# Step 5: Independence of residuals 
+dwtest(dist.by.rx)
+```
+
+```{r}
+# Step 6: Normality of residuals
+residuals <- data.frame(res = residuals(dist.by.rx))
+
+ggplot(residuals, aes(x = res)) +
+  geom_histogram(bins = 20) +
+  theme_bw() +
+  labs(
+    x = "Residuals",
+    y = "Count",
+    title = "Histogram of Residuals"
+  )
+
+```
+
+## Question 4:
+
+```{r}
+# interpret the model results using summary()
+summary(dist.by.rx)
+```
+
+### Interpretation : Only around 0.22% of the variability in the cube-root distance is explained by the opioid prescription rate. The p-value of the F-test is 0.2968, so the model is not significant which indicates that we fail to reject the null hypothesis that counties with higher opioid prescription rates are farther away. 
+
+## Question 5
+
+```{r}
+# Create model using lm() with cube root of outcome variable dist_SPP and opioid_RxRate and metro as the predictor variables
+
+dist.by.rx.met <- lm(I(dist_SSP^(1/3)) ~ opioid_RxRate + metro, data=ssp.data)
+```
+
+## Question 6
+
+```{r}
+# use summary() and confint() and interpret these results
+
+summary(dist.by.rx.met)
+
+```
+### Interpretation: The p-value of the F-statistic is 5.78e-11, which indicates a significant test result. The results show that non-metro counties have a higher distance than metro counties even when opioid prescription rate is not a significant predictor. 
+
+
+```{r}
+confint(dist.by.rx.met)
+```
+
+
+### Interpretation: The effect of the metro variable is positive indicating non-metro counties have a higher distance.
+
+
+## Question 7
+
+```{r}
+# compare the larger and smaller models using the partial-F test
+
+# use anova() with dist.by.rx and dist.by.rx.met
+
+anova(dist.by.rx, dist.by.rx.met)
+```
+
+## Question 8
+
+### Interpretation of the Partial-F test: The partial-F test is significant with a p-value of 1.174e-11. This indicates that adding the metro variable helps explain a signficant amount of variance in the cube-root distance compared to opioid prescription rate on its own. Therefore, the metro variable is a statistically significant predictor of the distance variable.  
